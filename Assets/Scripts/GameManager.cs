@@ -19,6 +19,8 @@ public class GameManager : MonoBehaviour
         public float halfWidth;
         public float y;          // center height
         public bool rampFed;     // a long train you can drive up onto
+        public List<GameObject> extras;
+        public List<Vector3> extraOff;
     }
 
     [Header("Scene links")]
@@ -212,6 +214,7 @@ public class GameManager : MonoBehaviour
         Item t = AddItem(Kind.Train, lane, z + len * 0.5f, len, 40f, Cfg.TrainHeight, Cfg.TrainHeight * 0.5f);
         t.rampFed = rampFed;
         trainEnd[lane] = z + len;
+        DecorateTrain(t);
 
         if (rampFed)
         {
@@ -221,6 +224,83 @@ public class GameManager : MonoBehaviour
             for (float cz = z + 30f; cz < z + len - 20f; cz += 30f)
                 AddItem(Kind.Coin, lane, cz, 8f, 8f, 8f, Cfg.TrainHeight + 14f);
         }
+    }
+
+    // ---------- train dressing: line stripe, windows, bullets, destination sign ----------
+
+    Font trainFont;
+
+    GameObject Extra(Item it, PrimitiveType t, Vector3 off, Vector3 size, Color c, Vector3 euler)
+    {
+        GameObject g = GameObject.CreatePrimitive(t);
+        Collider col = g.GetComponent<Collider>();
+        if (col != null) Destroy(col);
+        g.transform.SetParent(transform, false);
+        g.transform.localScale = size * Cfg.Scale;
+        g.transform.rotation = Quaternion.Euler(euler);
+        g.GetComponent<Renderer>().sharedMaterial = DiscMaterial(c);
+        it.extras.Add(g);
+        it.extraOff.Add(off);
+        return g;
+    }
+
+    void ExtraText(Item it, Vector3 off, string text, float h, Color c, Vector3 euler)
+    {
+        GameObject g = new GameObject("Text");
+        g.transform.SetParent(transform, false);
+        g.transform.rotation = Quaternion.Euler(euler);
+        TextMesh tm = g.AddComponent<TextMesh>();
+        if (trainFont == null) trainFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        tm.font = trainFont;
+        tm.text = text;
+        tm.anchor = TextAnchor.MiddleCenter;
+        tm.alignment = TextAlignment.Center;
+        tm.fontSize = 100;
+        tm.characterSize = h * Cfg.Scale / 10f;
+        tm.color = c;
+        g.GetComponent<MeshRenderer>().sharedMaterial = trainFont.material;
+        it.extras.Add(g);
+        it.extraOff.Add(off);
+    }
+
+    void DecorateTrain(Item t)
+    {
+        t.extras = new List<GameObject>();
+        t.extraOff = new List<Vector3>();
+        char svc = Lines.All[Random.Range(0, Lines.All.Length)];
+        Color lc = Lines.Of(svc);
+        Color dark = new Color(0.10f, 0.12f, 0.16f);
+        float len = t.len;
+        float hw = t.halfWidth;
+
+        for (int s = -1; s <= 1; s += 2)
+        {
+            float x = s * (hw + 0.4f);
+            // line-color stripe and a dark window row cut into segments
+            Extra(t, PrimitiveType.Cube, new Vector3(x, -9f, 0f), new Vector3(0.8f, 4f, len * 0.99f), lc, Vector3.zero);
+            for (float wz = -len * 0.5f + 20f; wz < len * 0.5f - 18f; wz += 34f)
+                Extra(t, PrimitiveType.Cube, new Vector3(x, 8f, wz), new Vector3(0.8f, 13f, 24f), dark, Vector3.zero);
+            // line bullets near the ends of each side
+            for (int e = -1; e <= 1; e += 2)
+            {
+                Vector3 bo = new Vector3(s * (hw + 0.9f), -9f, e * (len * 0.5f - 34f));
+                Extra(t, PrimitiveType.Cylinder, bo, new Vector3(11f, 0.3f, 11f), lc, new Vector3(0f, 0f, 90f));
+                ExtraText(t, bo + new Vector3(s * 0.5f, 0f, 0f), svc.ToString(), 7.5f, Lines.Text(svc), new Vector3(0f, -90f * s, 0f));
+            }
+        }
+
+        // front face: destination sign with bullet, and the stripe wrapping around
+        float fz = -len * 0.5f - 0.5f;
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, -9f, fz), new Vector3(hw * 2f + 1.6f, 4f, 0.8f), lc, Vector3.zero);
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, 11f, fz - 0.2f), new Vector3(hw * 2f - 4f, 14f, 0.8f), dark, Vector3.zero);
+        Extra(t, PrimitiveType.Cylinder, new Vector3(-hw + 9f, 11f, fz - 0.9f), new Vector3(10f, 0.3f, 10f), lc, new Vector3(90f, 0f, 0f));
+        ExtraText(t, new Vector3(-hw + 9f, 11f, fz - 1.4f), svc.ToString(), 7f, Lines.Text(svc), Vector3.zero);
+        string term = Lines.Terminal(svc);
+        float th = Mathf.Min(4.2f, 24f / (0.62f * term.Length));
+        ExtraText(t, new Vector3(4f, 11f, fz - 1.1f), term, th, new Color(1f, 0.85f, 0.4f), Vector3.zero);
+        Extra(t, PrimitiveType.Cube, new Vector3(-hw + 5f, -2f, fz - 0.2f), new Vector3(6f, 3f, 0.6f), new Color(1f, 0.97f, 0.8f), Vector3.zero);
+        Extra(t, PrimitiveType.Cube, new Vector3(hw - 5f, -2f, fz - 0.2f), new Vector3(6f, 3f, 0.6f), new Color(1f, 0.97f, 0.8f), Vector3.zero);
+        Place(t);
     }
 
     bool LaneClear(int lane, float z0, float z1)
@@ -279,12 +359,21 @@ public class GameManager : MonoBehaviour
     {
         float x = it.kind == Kind.Tie ? 0f : Cfg.LaneX(it.lane);
         it.go.transform.position = new Vector3(x, it.y, it.z) * Cfg.Scale;
+        if (it.extras != null)
+            for (int i = 0; i < it.extras.Count; i++)
+                it.extras[i].transform.position = (new Vector3(x, it.y, it.z) + it.extraOff[i]) * Cfg.Scale;
     }
 
     void Release(Item it)
     {
         it.go.SetActive(false);
         pool[it.kind].Push(it.go);
+        if (it.extras != null)
+        {
+            for (int i = 0; i < it.extras.Count; i++) Destroy(it.extras[i]);
+            it.extras = null;
+            it.extraOff = null;
+        }
     }
 
     GameObject Make(Kind kind)

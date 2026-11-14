@@ -329,6 +329,26 @@ public class EnvironmentSpawner : MonoBehaviour
             Cy(v, 16.6f, G + 0.8f, z, 0.25f, 0.12f, new Color(0.65f, 0.12f, 0.10f));
         }
 
+        // curb lip and slab joints
+        B(v, 17.0f, G + 0.04f, 0f, 0.3f, 0.1f, 20f, new Color(0.64f, 0.64f, 0.62f));
+        for (float jz = -8.75f; jz < 10f; jz += 2.5f)
+            B(v, 13.3f, G + 0.005f, jz, 7.2f, 0.01f, 0.05f, new Color(0.52f, 0.52f, 0.50f));
+
+        // sidewalk furniture on free spots
+        float[] spots = { -8f, -4.5f, 4.5f, 8f };
+        for (int k = 0; k < spots.Length; k++)
+        {
+            float z = spots[k];
+            if (Mathf.Abs(z - metroZ) < 4.2f) continue;
+            int roll = r.Next(0, 100);
+            if (roll < 22) Bench(v, 14.2f, z);
+            else if (roll < 34) Newsstand(v, 12.4f, z);
+            else if (roll < 44) HotDogCart(v, 14.0f, z);
+            else if (roll < 52) TrashCan(v, 15.2f, z);
+            else if (roll < 58) Mailbox(v, 15.6f, z);
+        }
+        if (r.Next(0, 100) < 12 && Mathf.Abs(metroZ) > 5f) SidewalkShed(v, 6.5f);
+
         // parked cars
         float[] cz = { -6.5f, 0f, 6.5f };
         for (int k = 0; k < cz.Length; k++)
@@ -338,6 +358,61 @@ public class EnvironmentSpawner : MonoBehaviour
             if (r.Next(0, 100) < 25) Van(v, 18.7f, cz[k]);
             else Car(v, 18.7f, cz[k], Pick(CarColors));
         }
+    }
+
+    void Bench(Transform v, float x, float z)
+    {
+        Color wood = new Color(0.45f, 0.30f, 0.18f);
+        Color iron = new Color(0.10f, 0.12f, 0.12f);
+        B(v, x, G + 0.5f, z, 0.6f, 0.08f, 1.8f, wood);
+        B(v, x + 0.3f, G + 0.9f, z, 0.06f, 0.5f, 1.8f, wood);
+        B(v, x, G + 0.25f, z - 0.75f, 0.5f, 0.5f, 0.08f, iron);
+        B(v, x, G + 0.25f, z + 0.75f, 0.5f, 0.5f, 0.08f, iron);
+    }
+
+    void Newsstand(Transform v, float x, float z)
+    {
+        Color body = new Color(0.14f, 0.26f, 0.22f);
+        B(v, x, G + 1.1f, z, 1.2f, 2.2f, 2.0f, body);
+        B(v, x, G + 2.28f, z, 1.5f, 0.12f, 2.3f, new Color(0.08f, 0.16f, 0.13f));
+        Color[] mag = { new Color(0.80f, 0.28f, 0.25f), new Color(0.95f, 0.80f, 0.25f), new Color(0.30f, 0.50f, 0.80f), new Color(0.92f, 0.92f, 0.88f) };
+        for (int k = 0; k < 4; k++) B(v, x + 0.62f, G + 1.5f, z - 0.75f + k * 0.5f, 0.04f, 0.6f, 0.4f, mag[k]);
+        B(v, x + 0.62f, G + 0.8f, z, 0.04f, 0.5f, 1.8f, new Color(0.25f, 0.22f, 0.20f));
+    }
+
+    void HotDogCart(Transform v, float x, float z)
+    {
+        Color steel = new Color(0.72f, 0.74f, 0.76f);
+        B(v, x, G + 0.6f, z, 0.9f, 0.7f, 1.4f, steel);
+        B(v, x, G + 1.0f, z, 0.95f, 0.08f, 1.5f, new Color(0.55f, 0.57f, 0.60f));
+        Cy(v, x - 0.3f, G + 0.15f, z - 0.55f, 0.3f, 0.3f, new Color(0.08f, 0.08f, 0.09f));
+        Cy(v, x - 0.3f, G + 0.15f, z + 0.55f, 0.3f, 0.3f, new Color(0.08f, 0.08f, 0.09f));
+        Cy(v, x, G + 1.9f, z, 0.05f, 1.8f, new Color(0.30f, 0.30f, 0.32f));
+        Color um = r.Next(0, 2) == 0 ? new Color(0.95f, 0.78f, 0.15f) : new Color(0.25f, 0.45f, 0.80f);
+        Prim(PrimitiveType.Cylinder, v, x, G + 2.8f, z, 2.3f, 0.06f, 2.3f, um, 0f);
+        Prim(PrimitiveType.Cylinder, v, x, G + 2.65f, z, 1.5f, 0.06f, 1.5f, Sh(um, 0.9f), 0f);
+    }
+
+    void TrashCan(Transform v, float x, float z)
+    {
+        Cy(v, x, G + 0.45f, z, 0.5f, 0.9f, new Color(0.12f, 0.20f, 0.17f));
+        Cy(v, x, G + 0.93f, z, 0.55f, 0.08f, new Color(0.08f, 0.14f, 0.12f));
+    }
+
+    void Mailbox(Transform v, float x, float z)
+    {
+        B(v, x, G + 0.55f, z, 0.5f, 1.1f, 0.5f, new Color(0.10f, 0.25f, 0.60f));
+        B(v, x, G + 1.15f, z, 0.52f, 0.12f, 0.52f, new Color(0.08f, 0.20f, 0.50f));
+    }
+
+    void SidewalkShed(Transform v, float z)
+    {
+        Color g = new Color(0.10f, 0.32f, 0.22f);
+        B(v, 13.3f, G + 2.7f, z, 6.6f, 0.15f, 5.0f, g);
+        for (int a = -1; a <= 1; a += 2)
+            for (int b = -1; b <= 1; b += 2)
+                B(v, 13.3f + a * 3.1f, G + 1.3f, z + b * 2.3f, 0.15f, 2.6f, 0.15f, g);
+        B(v, 13.3f, G + 2.3f, z - 2.45f, 6.4f, 0.08f, 0.06f, new Color(0.95f, 0.78f, 0.1f));
     }
 
     void Car(Transform v, float x, float z, Color c)
@@ -366,25 +441,71 @@ public class EnvironmentSpawner : MonoBehaviour
 
     // ---------------------------------------------------------------- subway entrance
 
+    static readonly string[][] Entrances =
+    {
+        new[]{"Times Sq-42 St","1237"}, new[]{"14 St-Union Sq","456N"}, new[]{"34 St-Herald Sq","BDFN"},
+        new[]{"Grand Central-42 St","4567"}, new[]{"Canal St","JNQ6"}, new[]{"Fulton St","2345"},
+        new[]{"W 4 St-Wash Sq","ABCD"}, new[]{"23 St","FM"}, new[]{"Bleecker St","6"},
+        new[]{"59 St-Columbus Circle","ABCD"}, new[]{"Chambers St","123"}, new[]{"Spring St","6"},
+        new[]{"Broadway-Lafayette","BDFM"}, new[]{"Delancey St","FJMZ"}, new[]{"Lexington Av/59 St","456N"}
+    };
+
     void Metro(Transform v)
     {
         float zc = r.Next(-3, 4);
         metroZ = zc;
         Color green = new Color(0.10f, 0.30f, 0.22f);
+        Color greenDk = new Color(0.07f, 0.22f, 0.16f);
+        Color black = new Color(0.05f, 0.05f, 0.06f);
+        Color steel = new Color(0.72f, 0.74f, 0.76f);
         Color hole = new Color(0.05f, 0.06f, 0.08f);
+        float x0 = 10.95f, x1 = 15.4f, cx = 13.2f;
 
-        B(v, 13.2f, 3.012f, zc, 4.4f, 0.02f, 3.0f, hole);
-        for (int i = 0; i < 4; i++) B(v, 11.6f + i * 1.1f, 3.024f, zc, 0.12f, 0.02f, 3.0f, new Color(0.45f, 0.45f, 0.47f));
+        // stairwell: dark opening with steps that darken as they descend
+        B(v, cx, 3.012f, zc, 4.4f, 0.02f, 3.0f, hole);
+        for (int i = 0; i < 5; i++)
+        {
+            float g = 0.40f - i * 0.06f;
+            B(v, 14.8f - i * 0.8f, 3.024f, zc, 0.5f, 0.02f, 3.0f, new Color(g, g, g + 0.02f));
+        }
+        // diamond-plate top step with a yellow edge
+        B(v, x1 + 0.35f, 3.03f, zc, 0.7f, 0.06f, 3.3f, new Color(0.55f, 0.56f, 0.58f));
+        B(v, x1 + 0.03f, 3.07f, zc, 0.12f, 0.03f, 3.3f, new Color(0.98f, 0.82f, 0.1f));
+
         for (int s = -1; s <= 1; s += 2)
         {
-            B(v, 13.2f, 3.95f, zc + 1.6f * s, 4.6f, 0.09f, 0.09f, green);
-            B(v, 13.2f, 3.5f, zc + 1.6f * s, 4.6f, 0.07f, 0.07f, green);
-            B(v, 10.95f, 3.55f, zc + 1.6f * s, 0.12f, 1.1f, 0.12f, green);
-            B(v, 15.4f, 4.3f, zc + 1.6f * s, 0.14f, 2.6f, 0.14f, green);
-            Sp(v, 15.4f, 5.75f, zc + 1.6f * s, 0.6f, new Color(0.35f, 0.95f, 0.50f));
+            float z = zc + 1.6f * s;
+            B(v, cx, G + 0.45f, z, 4.5f, 0.9f, 0.14f, green);            // solid base panel
+            B(v, cx, G + 0.95f, z, 4.6f, 0.08f, 0.24f, black);           // black coping
+            for (int k = 0; k < 9; k++)
+                B(v, x0 + 0.3f + k * 0.48f, G + 1.12f, z, 0.07f, 0.4f, 0.07f, green); // balusters
+            B(v, cx, G + 1.34f, z, 4.5f, 0.06f, 0.08f, steel);           // steel handrail
+            // corner posts with caps
+            B(v, x0, G + 0.85f, z, 0.3f, 1.7f, 0.3f, green);
+            B(v, x0, G + 1.75f, z, 0.42f, 0.1f, 0.42f, greenDk);
+            B(v, x1, G + 0.85f, z, 0.3f, 1.7f, 0.3f, green);
+            B(v, x1, G + 1.75f, z, 0.42f, 0.1f, 0.42f, greenDk);
+            // globe lamp on a tall post at the street end
+            Cy(v, x1, G + 2.7f, z, 0.12f, 1.9f, green);
+            Sp(v, x1, G + 3.85f, z, 0.62f, new Color(0.35f, 0.88f, 0.52f));
         }
-        B(v, 10.95f, 3.95f, zc, 0.09f, 0.09f, 3.3f, green);
-        B(v, 10.95f, 3.5f, zc, 0.07f, 0.07f, 3.3f, green);
+
+        // station sign at the far end, facing the runner, with real names and colored route bullets
+        string[] en = Entrances[r.Next(Entrances.Length)];
+        float sz = zc + 2.0f;
+        B(v, cx, G + 2.1f, sz, 4.7f, 1.4f, 0.18f, green);
+        B(v, cx, G + 2.1f, sz - 0.1f, 4.4f, 1.15f, 0.06f, black);
+        float nh = Mathf.Min(0.36f, 3.2f / (0.62f * en[0].Length));
+        LabelF(v, cx - 0.55f, G + 2.38f, sz - 0.15f, en[0], nh, Color.white);
+        for (int k = 0; k < en[1].Length; k++)
+        {
+            char c = en[1][k];
+            float bx = cx - 1.75f + k * 0.5f;
+            GameObject d = Prim(PrimitiveType.Cylinder, v, bx, G + 1.82f, sz - 0.14f, 0.42f, 0.02f, 0.42f, Lines.Of(c), 0f);
+            d.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            LabelF(v, bx, G + 1.82f, sz - 0.18f, c.ToString(), 0.3f, Lines.Text(c));
+        }
+        LabelF(v, cx + 0.9f, G + 1.82f, sz - 0.15f, "ENTER", 0.2f, new Color(0.8f, 0.8f, 0.8f));
 
         // station name plaque on the wall, angled a little toward the camera
         string name = Stations[r.Next(Stations.Length)];
@@ -703,6 +824,14 @@ public class EnvironmentSpawner : MonoBehaviour
         mr.sharedMaterial = font.material;
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         mr.receiveShadows = false;
+    }
+
+    // Text on a surface that faces the runner (-z).
+    void LabelF(Transform p, float x, float y, float z, string text, float height, Color c)
+    {
+        Label(p, x, y, z, text, height, c);
+        Transform t = p.GetChild(p.childCount - 1);
+        t.localRotation = Quaternion.identity;
     }
 
     Material Mat(Color c)
