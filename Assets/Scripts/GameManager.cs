@@ -273,14 +273,21 @@ public class GameManager : MonoBehaviour
         float len = t.len;
         float hw = t.halfWidth;
 
+        Color steelDk = new Color(0.47f, 0.49f, 0.52f);
+        Color rubber = new Color(0.12f, 0.13f, 0.15f);
         for (int s = -1; s <= 1; s += 2)
         {
             float x = s * (hw + 0.4f);
-            // line-color stripe and a dark window row cut into segments
-            Extra(t, PrimitiveType.Cube, new Vector3(x, -9f, 0f), new Vector3(0.8f, 4f, len * 0.99f), lc, Vector3.zero);
-            for (float wz = -len * 0.5f + 20f; wz < len * 0.5f - 18f; wz += 34f)
-                Extra(t, PrimitiveType.Cube, new Vector3(x, 8f, wz), new Vector3(0.8f, 13f, 24f), dark, Vector3.zero);
-            // line bullets near the ends of each side
+            // dark skirt, thin line-color stripe, window row with door panels between
+            Extra(t, PrimitiveType.Cube, new Vector3(x, -26f, 0f), new Vector3(0.8f, 8f, len * 0.995f), rubber, Vector3.zero);
+            Extra(t, PrimitiveType.Cube, new Vector3(x, -18f, 0f), new Vector3(0.8f, 1.6f, len * 0.99f), lc, Vector3.zero);
+            for (float wz = -len * 0.5f + 22f; wz < len * 0.5f - 20f; wz += 40f)
+            {
+                Extra(t, PrimitiveType.Cube, new Vector3(x, 0f, wz), new Vector3(0.9f, 30f, 11f), steelDk, Vector3.zero);      // door
+                Extra(t, PrimitiveType.Cube, new Vector3(x + s * 0.2f, 6f, wz), new Vector3(0.9f, 11f, 6f), dark, Vector3.zero);
+                Extra(t, PrimitiveType.Cube, new Vector3(x, 8f, wz + 14f), new Vector3(0.8f, 12f, 8f), dark, Vector3.zero);    // windows
+                Extra(t, PrimitiveType.Cube, new Vector3(x, 8f, wz - 14f), new Vector3(0.8f, 12f, 8f), dark, Vector3.zero);
+            }
             for (int e = -1; e <= 1; e += 2)
             {
                 Vector3 bo = new Vector3(s * (hw + 0.9f), -9f, e * (len * 0.5f - 34f));
@@ -289,17 +296,26 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // front face: destination sign with bullet, and the stripe wrapping around
-        float fz = -len * 0.5f - 0.5f;
-        Extra(t, PrimitiveType.Cube, new Vector3(0f, -9f, fz), new Vector3(hw * 2f + 1.6f, 4f, 0.8f), lc, Vector3.zero);
-        Extra(t, PrimitiveType.Cube, new Vector3(0f, 11f, fz - 0.2f), new Vector3(hw * 2f - 4f, 14f, 0.8f), dark, Vector3.zero);
-        Extra(t, PrimitiveType.Cylinder, new Vector3(-hw + 9f, 11f, fz - 0.9f), new Vector3(10f, 0.3f, 10f), lc, new Vector3(90f, 0f, 0f));
-        ExtraText(t, new Vector3(-hw + 9f, 11f, fz - 1.4f), svc.ToString(), 7f, Lines.Text(svc), Vector3.zero);
+        // front face: cab window, center door with window, destination window with a big bullet, round lights
+        float fz = -len * 0.5f - 0.6f;
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, -26f, fz), new Vector3(hw * 2f + 1.2f, 8f, 1f), rubber, Vector3.zero);
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, -19f, fz), new Vector3(hw * 2f + 1.2f, 2f, 1f), new Color(0.40f, 0.42f, 0.45f), Vector3.zero);
+        Extra(t, PrimitiveType.Cube, new Vector3(-hw + 8f, 9f, fz - 0.2f), new Vector3(11f, 16f, 0.8f), dark, Vector3.zero);       // cab window
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, 0f, fz - 0.1f), new Vector3(12f, 38f, 0.8f), steelDk, Vector3.zero);          // center door
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, 10f, fz - 0.5f), new Vector3(8f, 11f, 0.6f), dark, Vector3.zero);
+        Extra(t, PrimitiveType.Cube, new Vector3(hw - 8f, 9f, fz - 0.2f), new Vector3(11f, 16f, 0.8f), new Color(0.04f, 0.04f, 0.05f), Vector3.zero);
+        Extra(t, PrimitiveType.Cylinder, new Vector3(hw - 8f, 9f, fz - 0.8f), new Vector3(10f, 0.3f, 10f), lc, new Vector3(90f, 0f, 0f));
+        ExtraText(t, new Vector3(hw - 8f, 9f, fz - 1.3f), svc.ToString(), 7f, Lines.Text(svc), Vector3.zero);
         string term = Lines.Terminal(svc);
-        float th = Mathf.Min(4.2f, 24f / (0.62f * term.Length));
-        ExtraText(t, new Vector3(4f, 11f, fz - 1.1f), term, th, new Color(1f, 0.85f, 0.4f), Vector3.zero);
-        Extra(t, PrimitiveType.Cube, new Vector3(-hw + 5f, -2f, fz - 0.2f), new Vector3(6f, 3f, 0.6f), new Color(1f, 0.97f, 0.8f), Vector3.zero);
-        Extra(t, PrimitiveType.Cube, new Vector3(hw - 5f, -2f, fz - 0.2f), new Vector3(6f, 3f, 0.6f), new Color(1f, 0.97f, 0.8f), Vector3.zero);
+        float th = Mathf.Min(2.6f, 22f / (0.62f * term.Length));
+        Extra(t, PrimitiveType.Cube, new Vector3(0f, 24f, fz - 0.2f), new Vector3(24f, 4f, 0.6f), new Color(0.04f, 0.04f, 0.05f), Vector3.zero);
+        ExtraText(t, new Vector3(0f, 24f, fz - 0.7f), term, th, new Color(1f, 0.85f, 0.4f), Vector3.zero);
+        Color lamp = new Color(1f, 0.97f, 0.82f);
+        Color red = new Color(0.85f, 0.12f, 0.10f);
+        Extra(t, PrimitiveType.Cylinder, new Vector3(-hw + 9f, -11f, fz - 0.5f), new Vector3(4.2f, 0.3f, 4.2f), lamp, new Vector3(90f, 0f, 0f));
+        Extra(t, PrimitiveType.Cylinder, new Vector3(-hw + 3.5f, -6f, fz - 0.5f), new Vector3(3.2f, 0.3f, 3.2f), red, new Vector3(90f, 0f, 0f));
+        Extra(t, PrimitiveType.Cylinder, new Vector3(hw - 9f, -11f, fz - 0.5f), new Vector3(4.2f, 0.3f, 4.2f), lamp, new Vector3(90f, 0f, 0f));
+        Extra(t, PrimitiveType.Cylinder, new Vector3(hw - 3.5f, -6f, fz - 0.5f), new Vector3(3.2f, 0.3f, 3.2f), red, new Vector3(90f, 0f, 0f));
         Place(t);
     }
 
@@ -432,7 +448,7 @@ public class GameManager : MonoBehaviour
         switch (kind)
         {
             case Kind.Tie: c = new Color(0.30f, 0.26f, 0.22f); break;
-            case Kind.Train: c = new Color(0.45f, 0.52f, 0.60f); break;
+            case Kind.Train: c = new Color(0.66f, 0.68f, 0.70f); break;
             case Kind.Ramp: c = new Color(0.55f, 0.55f, 0.55f); break;
             case Kind.Barrier: c = new Color(0.95f, 0.55f, 0.15f); break;
             case Kind.Overhead: c = new Color(0.80f, 0.20f, 0.20f); break;
