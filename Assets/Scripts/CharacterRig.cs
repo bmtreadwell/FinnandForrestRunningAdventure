@@ -17,6 +17,12 @@ public class CharacterRig : MonoBehaviour
     static readonly Color Black = new Color(0.07f, 0.07f, 0.08f);
     static readonly Color Jeans = new Color(0.22f, 0.38f, 0.68f);
 
+    // The limb references are not saved with the scene, so rebuild them when Play starts.
+    void Awake()
+    {
+        if (armL == null) Build();
+    }
+
     public void Build()
     {
         for (int i = transform.childCount - 1; i >= 0; i--)
@@ -146,11 +152,11 @@ public class CharacterRig : MonoBehaviour
         }
         else
         {
-            body.localRotation = Quaternion.Euler(12, 0, 0);
-            armL.localRotation = Quaternion.Euler(sw * 60f, 0, 0);
-            armR.localRotation = Quaternion.Euler(-sw * 60f, 0, 0);
-            legL.localRotation = Quaternion.Euler(-sw * 55f, 0, 0);
-            legR.localRotation = Quaternion.Euler(sw * 55f, 0, 0);
+            body.localRotation = Quaternion.Euler(14f, sw * 8f, sw * 4f);
+            armL.localRotation = Quaternion.Euler(sw * 75f, 0, 6f);
+            armR.localRotation = Quaternion.Euler(-sw * 75f, 0, -6f);
+            legL.localRotation = Quaternion.Euler(-sw * 65f, 0, 0);
+            legR.localRotation = Quaternion.Euler(sw * 65f, 0, 0);
             float bob = Mathf.Abs(sw) * (isFinn ? 0.05f : 0.09f);
             body.localPosition = new Vector3(0, 1.0f + bob, 0);
         }

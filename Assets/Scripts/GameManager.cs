@@ -52,6 +52,8 @@ public class GameManager : MonoBehaviour
 
     float nextRowZ;
     float nextTieZ;
+    float lastRowZ = -9999f;
+    float coinSpin;
     int safeLane = 1;
     float deadTimer;
 
@@ -91,6 +93,7 @@ public class GameManager : MonoBehaviour
         Dead = false;
         deadTimer = 0f;
         nextRowZ = 500f;
+        lastRowZ = -9999f;
         nextTieZ = -100f;
         for (int l = 0; l < trainEnd.Length; l++) trainEnd[l] = -9999f;
         safeLane = 1;
@@ -113,6 +116,8 @@ public class GameManager : MonoBehaviour
         Distance += step;
 
         nextRowZ -= step;
+        lastRowZ -= step;
+        coinSpin += dt * 220f;
         nextTieZ -= step;
         for (int l = 0; l < trainEnd.Length; l++) trainEnd[l] -= step;
 
@@ -152,8 +157,14 @@ public class GameManager : MonoBehaviour
 
     void SpawnRow(float z)
     {
-        // Drift the safe lane by at most one lane per row.
-        safeLane = Mathf.Clamp(safeLane + Random.Range(-1, 2), 0, Cfg.LaneCount - 1);
+        // The safe lane is the runner's guaranteed ground path. It may move one lane per row, and only into a
+        // lane that no train occupies from the previous row onward, so a route always exists.
+        int prev = safeLane;
+        List<int> options = new List<int>();
+        for (int l = Mathf.Max(0, prev - 1); l <= Mathf.Min(Cfg.LaneCount - 1, prev + 1); l++)
+            if (l == prev || trainEnd[l] <= lastRowZ + 10f) options.Add(l);
+        safeLane = options[Random.Range(0, options.Count)];
+        bool changed = safeLane != prev;
 
         // Lanes that can take an obstacle: not the safe lane, and no train still running through.
         List<int> others = new List<int>();
@@ -162,6 +173,9 @@ public class GameManager : MonoBehaviour
 
         float r = Random.value;
         int pattern = r < 0.20f ? 0 : r < 0.50f ? 1 : r < 0.68f ? 2 : r < 0.88f ? 3 : 4;
+
+        // No trains on a row where the path shifts, so the runner always has room to move over.
+        if (changed && (pattern == 1 || pattern == 2)) pattern = 3;
 
         if (pattern == 1 && others.Count > 0)
         {
@@ -184,27 +198,27 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < 6; i++)
             AddItem(Kind.Coin, safeLane, z - 50f + i * 20f, 8f, 8f, 8f, 14f);
+
+        lastRowZ = z;
     }
 
+    // A train starts at the row and runs ahead of it; its ramp sits just before the start.
     void AddTrain(int lane, float z)
     {
         bool lng = Random.value < 0.4f;
         float len = lng ? 380f : 220f;
+        bool rampFed = lng && LaneClear(lane, z - RampLength - 20f, z + len + 20f);
 
-        // A ramp only goes in if the stretch in front of the train is empty in that lane.
-        float rampZ = z - len * 0.5f - RampLength * 0.5f;
-        bool rampFed = lng && LaneClear(lane, rampZ - RampLength * 0.5f - 20f, z + len * 0.5f + 20f);
-
-        Item t = AddItem(Kind.Train, lane, z, len, 40f, Cfg.TrainHeight, Cfg.TrainHeight * 0.5f);
+        Item t = AddItem(Kind.Train, lane, z + len * 0.5f, len, 40f, Cfg.TrainHeight, Cfg.TrainHeight * 0.5f);
         t.rampFed = rampFed;
-        trainEnd[lane] = z + len * 0.5f;
+        trainEnd[lane] = z + len;
 
         if (rampFed)
         {
-            AddItem(Kind.Ramp, lane, rampZ, RampLength, 44f, Cfg.TrainHeight, Cfg.TrainHeight * 0.5f);
+            AddItem(Kind.Ramp, lane, z - RampLength * 0.5f, RampLength, 44f, Cfg.TrainHeight, Cfg.TrainHeight * 0.5f);
 
             // Coins along the roof.
-            for (float cz = z - len * 0.5f + 30f; cz < z + len * 0.5f - 20f; cz += 30f)
+            for (float cz = z + 30f; cz < z + len - 20f; cz += 30f)
                 AddItem(Kind.Coin, lane, cz, 8f, 8f, 8f, Cfg.TrainHeight + 14f);
         }
     }
@@ -244,6 +258,11 @@ public class GameManager : MonoBehaviour
             it.go.transform.localScale = new Vector3(width, 4f, slope) * Cfg.Scale;
             it.go.transform.rotation = Quaternion.Euler(-angle, 0f, 0f);
         }
+        else if (kind == Kind.Coin)
+        {
+            it.go.transform.localScale = Vector3.one * Cfg.Scale;
+            it.go.transform.rotation = Quaternion.Euler(0f, coinSpin, 0f);
+        }
         else
         {
             it.go.transform.localScale = new Vector3(width, height, len) * Cfg.Scale;
@@ -270,8 +289,9 @@ public class GameManager : MonoBehaviour
 
     GameObject Make(Kind kind)
     {
-        PrimitiveType type = kind == Kind.Coin ? PrimitiveType.Sphere : PrimitiveType.Cube;
-        GameObject go = GameObject.CreatePrimitive(type);
+        if (kind == Kind.Coin) return MakeCoin();
+
+        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
         go.name = kind.ToString();
         go.transform.SetParent(transform, false);
 
@@ -280,6 +300,38 @@ public class GameManager : MonoBehaviour
 
         go.GetComponent<Renderer>().sharedMaterial = MaterialFor(kind);
         return go;
+    }
+
+    // A gold disc facing the runner: bright rim, darker raised face, light center. Spins around its height.
+    GameObject MakeCoin()
+    {
+        GameObject go = new GameObject("Coin");
+        go.transform.SetParent(transform, false);
+        Disc(go.transform, 12f, 2.2f, new Color(1.00f, 0.78f, 0.08f));
+        Disc(go.transform, 8.6f, 2.8f, new Color(0.88f, 0.62f, 0.05f));
+        Disc(go.transform, 4.2f, 3.2f, new Color(1.00f, 0.90f, 0.40f));
+        return go;
+    }
+
+    void Disc(Transform parent, float diameter, float thickness, Color c)
+    {
+        GameObject g = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        Collider col = g.GetComponent<Collider>();
+        if (col != null) Destroy(col);
+        g.transform.SetParent(parent, false);
+        g.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        g.transform.localScale = new Vector3(diameter, thickness * 0.5f, diameter);
+        g.GetComponent<Renderer>().sharedMaterial = DiscMaterial(c);
+    }
+
+    readonly Dictionary<int, Material> discMats = new Dictionary<int, Material>();
+
+    Material DiscMaterial(Color c)
+    {
+        int key = Mathf.RoundToInt(c.r * 255f) * 65536 + Mathf.RoundToInt(c.g * 255f) * 256 + Mathf.RoundToInt(c.b * 255f);
+        Material m;
+        if (!discMats.TryGetValue(key, out m)) { m = Look.Make(c); discMats[key] = m; }
+        return m;
     }
 
     Material MaterialFor(Kind kind)
@@ -312,6 +364,7 @@ public class GameManager : MonoBehaviour
             Item it = items[i];
             it.z -= step;
             Place(it);
+            if (it.kind == Kind.Coin) it.go.transform.rotation = Quaternion.Euler(0f, coinSpin, 0f);
         }
     }
 
