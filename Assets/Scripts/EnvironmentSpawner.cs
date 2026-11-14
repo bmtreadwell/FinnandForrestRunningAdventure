@@ -386,12 +386,16 @@ public class EnvironmentSpawner : MonoBehaviour
         B(v, 10.95f, 3.95f, zc, 0.09f, 0.09f, 3.3f, green);
         B(v, 10.95f, 3.5f, zc, 0.07f, 0.07f, 3.3f, green);
 
-        // station name plaque on the wall facing the track
+        // station name plaque on the wall, angled a little toward the camera
         string name = Stations[r.Next(Stations.Length)];
-        B(v, 8.95f, 1.6f, 0f, 0.1f, 1.34f, 7.4f, new Color(0.92f, 0.92f, 0.90f));
-        B(v, 8.92f, 1.6f, 0f, 0.08f, 1.2f, 7.2f, new Color(0.10f, 0.20f, 0.45f));
-        float th = Mathf.Min(0.55f, 6.4f / (0.62f * name.Length));
-        Label(v, 8.84f, 1.6f, 0f, name, th, Color.white);
+        GameObject pv = new GameObject("Plaque");
+        pv.transform.SetParent(v, false);
+        pv.transform.localPosition = new Vector3(8.9f * sd, 1.6f, 0f);
+        pv.transform.localRotation = Quaternion.Euler(0f, -10f * sd, 0f);
+        B(pv.transform, 0f, 0f, 0f, 0.1f, 1.7f, 10f, new Color(0.92f, 0.92f, 0.90f));
+        B(pv.transform, -0.04f, 0f, 0f, 0.08f, 1.5f, 9.8f, new Color(0.10f, 0.20f, 0.45f));
+        float th = Mathf.Min(1.0f, 9.0f / (0.62f * name.Length));
+        Label(pv.transform, -0.1f, 0f, 0f, name, th, Color.white);
     }
 
     // ---------------------------------------------------------------- buildings

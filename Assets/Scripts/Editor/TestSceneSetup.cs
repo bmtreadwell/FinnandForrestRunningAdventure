@@ -10,6 +10,8 @@ public static class TestSceneSetup
     const string RunnerKey = "FF_RunnerBuilt_v1";
     const string RigKey = "FF_RigBuilt_v1";
     const string EnvKey = "FF_EnvBuilt_v1";
+    const string CamKey = "FF_CamTuned_v2";
+    const string ShaderKey = "FF_ShaderIncluded_v1";
 
     static TestSceneSetup()
     {
@@ -19,6 +21,8 @@ public static class TestSceneSetup
             if (!EditorPrefs.GetBool(SceneKey, false)) { Build(); EditorPrefs.SetBool(SceneKey, true); }
             if (!EditorPrefs.GetBool(RunnerKey, false)) { AddRunner(); EditorPrefs.SetBool(RunnerKey, true); }
             if (!EditorPrefs.GetBool(RigKey, false)) { UseRig(true); EditorPrefs.SetBool(RigKey, true); }
+            if (!EditorPrefs.GetBool(CamKey, false)) { TuneCamera(); EditorPrefs.SetBool(CamKey, true); }
+            if (!EditorPrefs.GetBool(ShaderKey, false)) { IncludePencilShader(); EditorPrefs.SetBool(ShaderKey, true); }
             if (!EditorPrefs.GetBool(EnvKey, false)) { AddEnvironment(); EditorPrefs.SetBool(EnvKey, true); }
         };
     }
@@ -55,7 +59,7 @@ public static class TestSceneSetup
             // Beau's tuned values from the last session: Y 7 and FOV about 60 (Z was still being tuned).
             cam.transform.position = new Vector3(0f, 7f, -10f);
             cam.transform.rotation = Quaternion.Euler(18f, 0f, 0f);
-            cam.fieldOfView = 60f;
+            cam.fieldOfView = 50f;
         }
 
         EditorSceneManager.MarkSceneDirty(player.scene);
@@ -112,6 +116,35 @@ public static class TestSceneSetup
         EditorSceneManager.MarkSceneDirty(env.scene);
         EditorSceneManager.SaveScene(env.scene);
         Debug.Log("[FF] Environment added and scene saved.");
+    }
+
+    [MenuItem("Tools/Finn & Forrest/Tune Camera")]
+    public static void TuneCamera()
+    {
+        Camera cam = Camera.main;
+        if (cam == null) return;
+        cam.fieldOfView = 50f;
+        EditorSceneManager.MarkSceneDirty(cam.gameObject.scene);
+        EditorSceneManager.SaveScene(cam.gameObject.scene);
+        Debug.Log("[FF] Camera FOV set to 50.");
+    }
+
+    // Keeps the pencil shader in device builds even though only code references it.
+    [MenuItem("Tools/Finn & Forrest/Include Pencil Shader In Builds")]
+    public static void IncludePencilShader()
+    {
+        Shader sh = Shader.Find("FF/Pencil");
+        if (sh == null) { Debug.LogWarning("[FF] FF/Pencil shader not found."); return; }
+        Object gs = AssetDatabase.LoadAssetAtPath<Object>("ProjectSettings/GraphicsSettings.asset");
+        SerializedObject so = new SerializedObject(gs);
+        SerializedProperty arr = so.FindProperty("m_AlwaysIncludedShaders");
+        for (int i = 0; i < arr.arraySize; i++)
+            if (arr.GetArrayElementAtIndex(i).objectReferenceValue == sh) return;
+        arr.arraySize++;
+        arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = sh;
+        so.ApplyModifiedProperties();
+        AssetDatabase.SaveAssets();
+        Debug.Log("[FF] FF/Pencil added to Always Included Shaders.");
     }
 
     [MenuItem("Tools/Finn & Forrest/Toggle Autopilot")]
