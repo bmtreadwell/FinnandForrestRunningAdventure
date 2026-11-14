@@ -68,6 +68,15 @@ public class GameManager : MonoBehaviour
 #if UNITY_EDITOR
         autoPilot = UnityEditor.EditorPrefs.GetBool("FF_AutoPilot", false);
 #endif
+
+        // Ground slab gets the pencil look too.
+        GameObject track = GameObject.Find("Track");
+        if (track != null)
+        {
+            Renderer tr = track.GetComponent<Renderer>();
+            if (tr != null) tr.sharedMaterial = Look.Make(new Color(0.42f, 0.38f, 0.34f));
+        }
+
         ResetRun();
     }
 
@@ -289,9 +298,7 @@ public class GameManager : MonoBehaviour
             default: c = new Color(1.00f, 0.85f, 0.15f); break;
         }
 
-        m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        m.color = c;
-        if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c);
+        m = Look.Make(c);
         materials[kind] = m;
         return m;
     }
